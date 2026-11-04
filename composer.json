@@ -1,0 +1,25 @@
+{
+    "name": "fastermessage/fastermessage-php",
+    "description": "SDK PHP officiel de l'API FasterMessage v2 : SMS, e-mail, OTP, contacts et webhooks.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": ["fastermessage", "sms", "email", "otp", "api", "sdk"],
+    "homepage": "https://www.fastermessage.com/docs",
+    "require": {
+        "php": ">=8.1",
+        "ext-curl": "*",
+        "ext-json": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.5"
+    },
+    "autoload": {
+        "psr-4": { "FasterMessage\\": "src/" }
+    },
+    "autoload-dev": {
+        "psr-4": { "FasterMessage\\Tests\\": "tests/" }
+    },
+    "scripts": {
+        "test": "phpunit"
+    }
+}
