@@ -23,7 +23,10 @@ use FasterMessage\Exception\ServerException;
  */
 final class Requester
 {
-    public const VERSION = '0.1.0';
+    public const VERSION = '0.1.1';
+
+    /** Au-delà, le SDK ne bloque pas votre programme : il rend la main avec RateLimitException. */
+    private const MAX_RETRY_AFTER = 60;
 
     /** Un même appel rejoué garde sa clé : c'est ce qui rend une reprise sans risque. */
     private const MUTATING = ['POST', 'PATCH', 'PUT', 'DELETE'];
@@ -55,6 +58,13 @@ final class Requester
      */
     public function request(string $method, string $path, array $query = [], ?array $body = null, array $options = []): ?array
     {
+        foreach (['idempotency_key', 'request_id'] as $name) {
+            // Un retour à la ligne ajouterait un en-tête à la requête.
+            if (isset($options[$name]) && preg_match('/[^\x20-\x7E]/', $options[$name]) === 1) {
+                throw new \InvalidArgumentException($name . ' contient des caractères invalides.');
+            }
+        }
+
         $url = $this->baseUrl . $path;
         $query = array_filter($query, static fn ($value) => $value !== null);
         if ($query !== []) {
@@ -94,7 +104,7 @@ final class Requester
                 continue;
             }
 
-            if ($response->status < 400) {
+            if ($response->status < 300) {
                 return $this->decode($response);
             }
 
@@ -115,7 +125,7 @@ final class Requester
     private function retryDelay(ApiException $failure, int $attempt): ?float
     {
         if ($failure->httpStatus === 429) {
-            return $failure->retryAfter === null ? null : (float) $failure->retryAfter;
+            return $failure->retryAfter === null || $failure->retryAfter > self::MAX_RETRY_AFTER ? null : (float) $failure->retryAfter;
         }
         if ($failure->errorCode === 'idempotency_key_in_flight') {
             return $this->backoff($attempt);
@@ -174,7 +184,7 @@ final class Requester
             is_string($error['type'] ?? null) ? $error['type'] : '',
             is_string($error['param'] ?? null) ? $error['param'] : null,
             is_string($error['request_id'] ?? null) ? $error['request_id'] : $response->header('x-request-id'),
-            is_numeric($retryAfter) ? (int) $retryAfter : null,
+            is_string($retryAfter) && ctype_digit(trim($retryAfter)) ? (int) trim($retryAfter) : null,
         );
     }
 }

@@ -33,6 +33,11 @@ abstract class Resource
 
     protected static function segment(string $id): string
     {
+        // `..` changerait la route visée, et un identifiant vide viserait la collection.
+        if ($id === '' || $id === '.' || $id === '..') {
+            throw new \InvalidArgumentException('Identifiant de ressource invalide.');
+        }
+
         return rawurlencode($id);
     }
 }

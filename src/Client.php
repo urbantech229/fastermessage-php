@@ -43,12 +43,17 @@ final class Client
             throw new \InvalidArgumentException('L\'identifiant, le mot de passe et la clé d\'API sont tous obligatoires.');
         }
 
+        if (preg_match('/^[\x21-\x7E]+$/D', $apiKey) !== 1) {
+            // Le message ne cite jamais la valeur : il finirait dans vos journaux.
+            throw new \InvalidArgumentException('La clé d\'API contient des caractères invalides : vérifiez son copier-coller.');
+        }
+
         $this->testMode = str_contains($apiKey, '_test_');
 
         $http = new Requester(
             'Basic ' . base64_encode($username . ':' . $password),
             $apiKey,
-            rtrim($options['base_url'] ?? self::DEFAULT_BASE_URL, '/'),
+            self::checkedBaseUrl($options['base_url'] ?? self::DEFAULT_BASE_URL),
             $options['timeout'] ?? 30.0,
             max(0, $options['max_retries'] ?? 2),
             $options['transport'] ?? new CurlTransport(),
@@ -62,6 +67,21 @@ final class Client
         $this->contacts = new Contacts($http);
         $this->contactGroups = new ContactGroups($http);
         $this->account = new Account($http);
+    }
+
+    /** Les identifiants ne partent qu'en https, sauf vers la machine locale. */
+    private static function checkedBaseUrl(string $value): string
+    {
+        $parts = parse_url($value);
+        $scheme = is_array($parts) ? ($parts['scheme'] ?? '') : '';
+        $host = is_array($parts) ? ($parts['host'] ?? '') : '';
+        $allowed = $scheme === 'https' || ($scheme === 'http' && in_array($host, ['localhost', '127.0.0.1', '[::1]'], true));
+
+        if (!$allowed || $host === '' || isset($parts['user']) || isset($parts['pass']) || isset($parts['query']) || isset($parts['fragment'])) {
+            throw new \InvalidArgumentException('base_url doit être une adresse https, sans identifiants (http seulement vers la machine locale).');
+        }
+
+        return rtrim($value, '/');
     }
 
     /** Vrai avec une clé de test : messages et OTP simulés, mais contacts et soldes réels. */

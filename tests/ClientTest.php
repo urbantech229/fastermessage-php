@@ -243,6 +243,129 @@ final class ClientTest extends TestCase
         $this->assertTrue($client->isTestMode());
     }
 
+    /** @return iterable<string, array{string}> */
+    public static function adressesRefusees(): iterable
+    {
+        foreach (['http://api.marque.test', 'file:///C:/Windows/win.ini', 'ftp://api.marque.test', 'https://compte:secret@api.marque.test', 'https://api.marque.test/?a=1', 'api.marque.test', 'https://'] as $url) {
+            yield $url => [$url];
+        }
+    }
+
+    #[DataProvider('adressesRefusees')]
+    public function testRefuseUneAdresseNonSure(string $url): void
+    {
+        try {
+            new Client('a', 'b', 'c', ['base_url' => $url]);
+            $this->fail('Adresse acceptée.');
+        } catch (\InvalidArgumentException $error) {
+            $this->assertStringNotContainsString('secret', $error->getMessage());
+        }
+    }
+
+    public function testAccepteHttpsEtLaMachineLocale(): void
+    {
+        foreach (['https://api.marque.test', 'https://api.marque.test/x/', 'http://localhost:3001', 'http://127.0.0.1:9', 'http://[::1]:9'] as $url) {
+            $this->assertInstanceOf(Client::class, new Client('a', 'b', 'c', ['base_url' => $url]));
+        }
+    }
+
+    public function testRefuseUneCleInvalideSansLaCiter(): void
+    {
+        foreach (["fm_test_SECRET\nX: y", 'fm_test_SECRET ', "fm_test_SECRET\n"] as $key) {
+            try {
+                new Client('a', 'b', $key);
+                $this->fail('Clé acceptée.');
+            } catch (\InvalidArgumentException $error) {
+                $this->assertStringNotContainsString('SECRET', $error->getMessage());
+            }
+        }
+    }
+
+    public function testControleLesEnTetesFournisSansRienEnvoyer(): void
+    {
+        $transport = new FakeTransport([]);
+        foreach ([['idempotency_key' => "cle\r\nX: y"], ['request_id' => "r\n"]] as $options) {
+            try {
+                $this->client($transport)->sms->send(['to' => '1', 'from' => 'F', 'content' => 'c'], $options);
+                $this->fail('En-tête accepté.');
+            } catch (\InvalidArgumentException) {
+                $this->assertSame([], $transport->calls);
+            }
+        }
+    }
+
+    public function testRefuseUnIdentifiantVideOuEnPoints(): void
+    {
+        $transport = new FakeTransport([]);
+        foreach (['', '.', '..'] as $id) {
+            foreach ([
+                fn () => $this->client($transport)->contacts->get($id),
+                fn () => $this->client($transport)->contacts->delete($id),
+                fn () => $this->client($transport)->contactGroups->update($id, ['name' => 'n']),
+                fn () => $this->client($transport)->messages->get($id),
+            ] as $call) {
+                try {
+                    $call();
+                    $this->fail('Identifiant accepté.');
+                } catch (\InvalidArgumentException) {
+                    $this->assertSame([], $transport->calls);
+                }
+            }
+        }
+    }
+
+    public function testAccepteUnIdentifiantAvecDesPoints(): void
+    {
+        $transport = new FakeTransport([FakeTransport::json(200, ['id' => 'x'])]);
+        $this->client($transport)->contacts->get('a..b');
+        $this->assertSame('https://api.fastermessage.com/v2/contacts/a..b', $transport->calls[0]['url']);
+    }
+
+    public function testUnRetryAfterTropLongRendLaMain(): void
+    {
+        $transport = new FakeTransport([new Response(429, ['retry-after' => '86400'], '{"error":{"code":"rate_limited","type":"rate_limit","message":"x"}}')]);
+        try {
+            $this->client($transport)->account->balance();
+            $this->fail('Aucune erreur.');
+        } catch (RateLimitException $error) {
+            $this->assertSame(86400, $error->retryAfter);
+        }
+        $this->assertSame([], $this->slept);
+        $this->assertCount(1, $transport->calls);
+    }
+
+    public function testUnRetryAfterDe60SecondesEstAttendu(): void
+    {
+        $transport = new FakeTransport([new Response(429, ['retry-after' => '60'], '{"error":{"code":"rate_limited","type":"rate_limit","message":"x"}}'), FakeTransport::json(200, ['balances' => []])]);
+        $this->client($transport)->account->balance();
+        $this->assertSame([60.0], $this->slept);
+    }
+
+    public function testUnRetryAfterIllisibleEstIgnore(): void
+    {
+        foreach (['1e9', '-1', '1.5', 'demain'] as $value) {
+            $transport = new FakeTransport([new Response(429, ['retry-after' => $value], '{"error":{"code":"rate_limited","type":"rate_limit","message":"x"}}')]);
+            try {
+                $this->client($transport)->account->balance();
+                $this->fail('Aucune erreur.');
+            } catch (RateLimitException $error) {
+                $this->assertNull($error->retryAfter);
+            }
+        }
+    }
+
+    public function testUneRedirectionEstUneErreur(): void
+    {
+        $transport = new FakeTransport([new Response(302, ['location' => 'https://ailleurs.test/'], '')]);
+        try {
+            $this->client($transport)->account->balance();
+            $this->fail('Aucune erreur.');
+        } catch (ApiException $error) {
+            $this->assertSame(302, $error->httpStatus);
+        }
+        $this->assertCount(1, $transport->calls);
+    }
+
     public function testVerifieLaSignatureDUnRappel(): void
     {
         $body = '{"uuid":"m1","status":"Delivered"}';
