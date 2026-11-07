@@ -220,6 +220,26 @@ final class ClientTest extends TestCase
         $this->assertStringContainsString('"channel":"sms"', (string) $transport->calls[0]['body']);
     }
 
+    public function testOtpTransmetLeRepliEtRendSonEtat(): void
+    {
+        $repli = ['will_run' => true, 'state' => 'watching', 'steps' => [['channel' => 'email', 'will_run' => true, 'reason' => null, 'message_id' => null]]];
+        $transport = new FakeTransport([FakeTransport::json(201, ['id' => 'o1', 'fallback' => $repli])]);
+        $fallback = [['channel' => 'email', 'to' => 'a@b.test', 'from' => 'no-reply@b.test', 'content' => ['text' => 'Code : {code}']]];
+
+        $otp = $this->client($transport)->otp->request([
+            'to' => '1',
+            'fallback' => $fallback,
+            'test_outcome' => 'failed',
+            'callback_url' => 'https://exemple.test/repli',
+        ]);
+
+        $sent = json_decode((string) $transport->calls[0]['body'], true);
+        $this->assertSame($fallback, $sent['fallback']);
+        $this->assertSame('failed', $sent['test_outcome']);
+        $this->assertSame('https://exemple.test/repli', $sent['callback_url']);
+        $this->assertSame('watching', $otp['fallback']['state']);
+    }
+
     public function testRespecteLeDomaineDeLaMarque(): void
     {
         $transport = new FakeTransport([FakeTransport::json(200, [])]);
@@ -375,5 +395,23 @@ final class ClientTest extends TestCase
         $this->assertFalse(Webhook::isGenuine($body . ' ', $signature, 'cle'));
         $this->assertFalse(Webhook::isGenuine($body, $signature, 'autre'));
         $this->assertFalse(Webhook::isGenuine($body, null, 'cle'));
+    }
+
+    public function testVerifieLeRappelDeRepliCommeLesAutres(): void
+    {
+        $body = (string) json_encode([
+            'event' => 'fallback',
+            'id' => 'm1',
+            'kind' => 'message',
+            'channel' => 'sms',
+            'client_reference' => null,
+            'fallback' => ['will_run' => true, 'state' => 'triggered', 'steps' => [['channel' => 'email', 'will_run' => true, 'reason' => null, 'message_id' => 'm2']]],
+            'event_at' => '2026-11-07T10:00:00.000Z',
+        ]);
+
+        $this->assertTrue(Webhook::isGenuine($body, 'sha256=' . hash_hmac('sha256', $body, 'cle'), 'cle'));
+        $event = json_decode($body, true);
+        $this->assertSame('fallback', $event['event']);
+        $this->assertSame('triggered', $event['fallback']['state']);
     }
 }

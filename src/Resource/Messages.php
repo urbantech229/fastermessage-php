@@ -9,6 +9,11 @@ final class Messages extends Resource
     /**
      * Envoi avec le canal en paramètre : `channel` vaut `sms` ou `email`.
      *
+     * `fallback` est un tableau ordonné d'étapes `['channel' => 'sms'|'email', 'to', 'from', 'content']` :
+     * `content` est obligatoire vers le SMS (chaîne ou `['text', 'unicode']`), facultatif vers l'e-mail.
+     * La réponse porte alors `fallback` (`will_run`, `state`, `steps`), `null` sans repli.
+     * `test_outcome` (`failed` ou `delivered`) simule l'issue, avec une clé `fm_test_` seulement.
+     *
      * @param array<string, mixed> $params
      * @param array{idempotency_key?: string, request_id?: string} $options
      *
