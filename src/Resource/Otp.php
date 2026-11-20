@@ -7,13 +7,15 @@ namespace FasterMessage\Resource;
 final class Otp extends Resource
 {
     /**
-     * Émet un code. Sans `channel`, le SMS est retenu, seul canal servi.
+     * Émet un code. Sans `channel`, le SMS est retenu ; `channel` => `whatsapp` envoie le code par votre
+     * modèle d'authentification approuvé : `from` est alors le numéro WhatsApp (obligatoire), `template`
+     * le nom du modèle et `language` sa langue, tous deux facultatifs s'il est unique.
      *
-     * Le repli (`fallback`, vers l'e-mail) reprend la forme des envois ; un `content` propre doit
-     * contenir `{code}`. `callback_url` reçoit le rappel de repli, à défaut l'adresse du compte.
+     * Le repli (`fallback`, vers le SMS, l'e-mail ou WhatsApp) reprend la forme des envois ; un `content`
+     * propre (SMS, e-mail) doit contenir `{code}`. `callback_url` reçoit le rappel de repli, à défaut l'adresse du compte.
      * `test_outcome` (`failed` ou `delivered`) simule l'issue, avec une clé `fm_test_` seulement.
      *
-     * @param array<string, mixed> $params `to`, et en option `channel`, `from`, `length`, `ttl_seconds`, `template`,
+     * @param array<string, mixed> $params `to`, et en option `channel`, `from`, `length`, `ttl_seconds`, `template`, `language`,
      *                                     `client_reference`, `fallback`, `test_outcome`, `callback_url`
      * @param array{idempotency_key?: string, request_id?: string} $options
      *

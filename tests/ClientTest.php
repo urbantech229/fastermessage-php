@@ -220,6 +220,29 @@ final class ClientTest extends TestCase
         $this->assertStringContainsString('"channel":"sms"', (string) $transport->calls[0]['body']);
     }
 
+    public function testEnvoieUnWhatsappSurSaRoute(): void
+    {
+        $transport = new FakeTransport([FakeTransport::json(201, ['id' => 'w1', 'channel' => 'whatsapp'])]);
+        $params = ['to' => '1', 'from' => '+2', 'content' => ['template' => 't', 'variables' => ['1' => 'a']]];
+
+        $message = $this->client($transport)->whatsapp->send($params);
+
+        $this->assertStringEndsWith('/v2/whatsapp/send', $transport->calls[0]['url']);
+        $this->assertSame($params, json_decode((string) $transport->calls[0]['body'], true));
+        $this->assertSame('whatsapp', $message['channel']);
+    }
+
+    public function testOtpTransmetLeCanalWhatsappEtLaLangue(): void
+    {
+        $transport = new FakeTransport([FakeTransport::json(201, ['id' => 'o1'])]);
+
+        $this->client($transport)->otp->request(['to' => '1', 'channel' => 'whatsapp', 'from' => '+2', 'language' => 'fr']);
+
+        $sent = json_decode((string) $transport->calls[0]['body'], true);
+        $this->assertSame('whatsapp', $sent['channel']);
+        $this->assertSame('fr', $sent['language']);
+    }
+
     public function testOtpTransmetLeRepliEtRendSonEtat(): void
     {
         $repli = ['will_run' => true, 'state' => 'watching', 'steps' => [['channel' => 'email', 'will_run' => true, 'reason' => null, 'message_id' => null]]];

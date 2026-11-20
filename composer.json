@@ -1,9 +1,9 @@
 {
     "name": "fastermessage/fastermessage-php",
-    "description": "SDK PHP officiel de l'API FasterMessage v2 : SMS, e-mail, OTP, contacts et webhooks.",
+    "description": "SDK PHP officiel de l'API FasterMessage v2 : SMS, e-mail, WhatsApp, OTP, contacts et webhooks.",
     "type": "library",
     "license": "MIT",
-    "keywords": ["fastermessage", "sms", "email", "otp", "api", "sdk"],
+    "keywords": ["fastermessage", "sms", "email", "whatsapp", "otp", "api", "sdk"],
     "homepage": "https://www.fastermessage.com/docs",
     "require": {
         "php": ">=8.1",

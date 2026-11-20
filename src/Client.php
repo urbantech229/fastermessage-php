@@ -14,6 +14,7 @@ use FasterMessage\Resource\Email;
 use FasterMessage\Resource\Messages;
 use FasterMessage\Resource\Otp;
 use FasterMessage\Resource\Sms;
+use FasterMessage\Resource\Whatsapp;
 
 /** Point d'entrée du SDK. */
 final class Client
@@ -22,6 +23,7 @@ final class Client
 
     public readonly Sms $sms;
     public readonly Email $email;
+    public readonly Whatsapp $whatsapp;
     public readonly Messages $messages;
     public readonly Otp $otp;
     public readonly Contacts $contacts;
@@ -62,6 +64,7 @@ final class Client
 
         $this->sms = new Sms($http);
         $this->email = new Email($http);
+        $this->whatsapp = new Whatsapp($http);
         $this->messages = new Messages($http);
         $this->otp = new Otp($http);
         $this->contacts = new Contacts($http);

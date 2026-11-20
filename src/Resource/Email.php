@@ -11,8 +11,9 @@ final class Email extends Resource
      * et/ou `text`), et en option `from`, `fallback`, `test_outcome`, `scheduled_at`, `callback_url`,
      * `client_reference`.
      *
-     * `fallback` est un tableau ordonné d'étapes `['channel' => 'sms'|'email', 'to', 'from', 'content']` :
-     * `content` est obligatoire vers le SMS (chaîne ou `['text', 'unicode']`), facultatif vers l'e-mail.
+     * `fallback` est un tableau ordonné d'étapes `['channel' => 'sms'|'whatsapp', 'to', 'from', 'content']` :
+     * `content` est obligatoire vers le SMS (chaîne ou `['text', 'unicode']`), et vers WhatsApp un modèle
+     * (`template`, `language`, `variables`) ou un texte (`text`, dans la fenêtre de 24 h).
      * La réponse porte alors `fallback` (`will_run`, `state`, `steps`), `null` sans repli.
      * `test_outcome` (`failed` ou `delivered`) simule l'issue, avec une clé `fm_test_` seulement.
      *
