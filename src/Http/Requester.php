@@ -23,7 +23,7 @@ use FasterMessage\Exception\ServerException;
  */
 final class Requester
 {
-    public const VERSION = '0.2.0';
+    public const VERSION = '0.3.0';
 
     /** Au-delà, le SDK ne bloque pas votre programme : il rend la main avec RateLimitException. */
     private const MAX_RETRY_AFTER = 60;

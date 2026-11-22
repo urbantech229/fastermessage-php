@@ -38,6 +38,8 @@ Sur le domaine d'API de votre marque : `new Client($user, $password, $key, ['bas
 | SMS | `$fm->sms->send()`, `$fm->sms->sendBatch()` (500 lignes) |
 | E-mail | `$fm->email->send()` |
 | WhatsApp | `$fm->whatsapp->send()` |
+| Ce que vous pouvez utiliser (WhatsApp) | `$fm->whatsapp->listNumbers()`, `listTemplates()`, `allNumbers()`, `allTemplates()` |
+| Ce que vous pouvez utiliser (e-mail) | `$fm->email->listSenders()`, `listTemplates()`, `allSenders()`, `allTemplates()` |
 | Canal en paramètre | `$fm->messages->send()` |
 | Suivi | `$fm->messages->get()`, `list()`, `all()` |
 | OTP | `$fm->otp->request()` (SMS ou WhatsApp), `$fm->otp->verify()` |
@@ -47,6 +49,23 @@ Sur le domaine d'API de votre marque : `new Client($user, $password, $key, ['bas
 | Webhooks | `Webhook::isGenuine()` |
 
 Les réponses sont des tableaux associatifs, aux noms de champs de l'API : un champ ajouté par l'API est disponible sans mise à jour du SDK. La référence complète est dans la [documentation de l'API](https://www.fastermessage.com/docs).
+
+## Ce que vous pouvez utiliser
+
+Ces lectures ne rendent que ce qui est validé et utilisable sur votre compte, exactement ce que l'envoi accepte : un élément listé ne sera pas refusé à l'envoi.
+
+```php
+foreach ($fm->whatsapp->allNumbers() as $number) {
+    echo $number['number'];                      // à mettre dans `from`
+}
+foreach ($fm->whatsapp->allTemplates() as $template) {
+    echo $template['name'], ' ', $template['language'], ' ', implode(',', $template['variables']); // 1,2,header…
+}
+foreach ($fm->email->allSenders() as $sender) {
+    echo $sender['address'];                     // à mettre dans `from` d'un e-mail
+}
+$page = $fm->email->listTemplates(['limit' => 20]); // modèles publiés : subject, html, from_email…
+```
 
 ## WhatsApp
 

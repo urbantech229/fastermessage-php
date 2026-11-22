@@ -26,4 +26,55 @@ final class Email extends Resource
     {
         return $this->http->request('POST', '/v2/email/send', [], $params, $options) ?? [];
     }
+
+    /**
+     * Une page des adresses expéditrices utilisables dans `from` : adresses actives (domaine
+     * authentifié), et l'adresse par défaut de votre marque si vous y avez droit (`brand_default`).
+     * Chaque adresse : `address`, `name`, `domain`, `brand_default`.
+     *
+     * @param array{limit?: int, cursor?: string} $query
+     *
+     * @return array<string, mixed> `data`, `has_more`, `next_cursor`
+     */
+    public function listSenders(array $query = []): array
+    {
+        return $this->http->request('GET', '/v2/email/senders', $query) ?? [];
+    }
+
+    /**
+     * Toutes les adresses expéditrices utilisables, page après page.
+     *
+     * @param array{limit?: int} $query
+     *
+     * @return \Generator<int, array<string, mixed>>
+     */
+    public function allSenders(array $query = []): \Generator
+    {
+        return $this->paginate('/v2/email/senders', $query);
+    }
+
+    /**
+     * Une page des modèles e-mail publiés. Chaque modèle : `id`, `name`, `subject`, `html`,
+     * `from_email` (`null` si l'adresse du modèle n'est plus utilisable), `from_name`, `reply_to`.
+     *
+     * @param array{limit?: int, cursor?: string} $query
+     *
+     * @return array<string, mixed> `data`, `has_more`, `next_cursor`
+     */
+    public function listTemplates(array $query = []): array
+    {
+        return $this->http->request('GET', '/v2/email/templates', $query) ?? [];
+    }
+
+    /**
+     * Tous les modèles e-mail publiés, page après page.
+     *
+     * @param array{limit?: int} $query
+     *
+     * @return \Generator<int, array<string, mixed>>
+     */
+    public function allTemplates(array $query = []): \Generator
+    {
+        return $this->paginate('/v2/email/templates', $query);
+    }
 }

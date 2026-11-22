@@ -232,6 +232,39 @@ final class ClientTest extends TestCase
         $this->assertSame('whatsapp', $message['channel']);
     }
 
+    public function testLitLesRessourcesUtilisablesSurLeursRoutes(): void
+    {
+        $page = ['data' => [], 'has_more' => false, 'next_cursor' => null];
+        $transport = new FakeTransport(array_fill(0, 4, FakeTransport::json(200, $page)));
+        $fm = $this->client($transport);
+
+        $fm->whatsapp->listNumbers(['limit' => 10]);
+        $fm->whatsapp->listTemplates();
+        $fm->email->listSenders();
+        $fm->email->listTemplates(['cursor' => 'c1']);
+
+        $this->assertSame(['GET', 'GET', 'GET', 'GET'], array_column($transport->calls, 'method'));
+        $this->assertStringEndsWith('/v2/whatsapp/numbers?limit=10', $transport->calls[0]['url']);
+        $this->assertStringEndsWith('/v2/whatsapp/templates', $transport->calls[1]['url']);
+        $this->assertStringEndsWith('/v2/email/senders', $transport->calls[2]['url']);
+        $this->assertStringEndsWith('/v2/email/templates?cursor=c1', $transport->calls[3]['url']);
+        // Une lecture ne porte jamais de clé d'idempotence.
+        $this->assertArrayNotHasKey('Idempotency-Key', $transport->calls[0]['headers']);
+    }
+
+    public function testParcourtTousLesModelesWhatsapp(): void
+    {
+        $transport = new FakeTransport([
+            FakeTransport::json(200, ['data' => [['name' => 'a']], 'has_more' => true, 'next_cursor' => 'c1']),
+            FakeTransport::json(200, ['data' => [['name' => 'b']], 'has_more' => false, 'next_cursor' => null]),
+        ]);
+
+        $names = array_column(iterator_to_array($this->client($transport)->whatsapp->allTemplates(), false), 'name');
+
+        $this->assertSame(['a', 'b'], $names);
+        $this->assertStringContainsString('cursor=c1', $transport->calls[1]['url']);
+    }
+
     public function testOtpTransmetLeCanalWhatsappEtLaLangue(): void
     {
         $transport = new FakeTransport([FakeTransport::json(201, ['id' => 'o1'])]);
