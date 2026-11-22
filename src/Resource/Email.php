@@ -8,7 +8,8 @@ final class Email extends Resource
 {
     /**
      * Envoie un e-mail à une adresse. Champs : `to`, `content` (`subject`, et `html`
-     * et/ou `text`), et en option `from`, `fallback`, `test_outcome`, `scheduled_at`, `callback_url`,
+     * et/ou `text` ; en option `reply_to`, l'adresse qui recevra les réponses, sans nom
+     * affiché), et en option `from`, `fallback`, `test_outcome`, `scheduled_at`, `callback_url`,
      * `client_reference`.
      *
      * `fallback` est un tableau ordonné d'étapes `['channel' => 'sms'|'whatsapp', 'to', 'from', 'content']` :
